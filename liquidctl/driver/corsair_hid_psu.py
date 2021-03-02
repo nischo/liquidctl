@@ -32,7 +32,7 @@ _SLAVE_ADDRESS = 0x02
 _CORSAIR_READ_TOTAL_UPTIME = CMD.MFR_SPECIFIC_D1
 _CORSAIR_READ_UPTIME = CMD.MFR_SPECIFIC_D2
 _CORSAIR_12V_OCP_MODE = CMD.MFR_SPECIFIC_D8
-_CORSAIR_READ_INPUT_POWER = CMD.MFR_SPECIFIC_EE
+_CORSAIR_READ_OUTPUT_POWER = CMD.MFR_SPECIFIC_EE
 _CORSAIR_FAN_CONTROL_MODE = CMD.MFR_SPECIFIC_F0
 
 _RAIL_12V = 0x0
@@ -107,6 +107,8 @@ class CorsairHidPsu(UsbHidDriver):
         ret = self._exec(WriteBit.WRITE, CMD.PAGE, [0])
         if ret[1] == 0xfe:
             _LOGGER.warning('possibly uninitialized device')
+        power_in = self._get_float(CMD.READ_PIN)
+        power_out = self._get_float(_CORSAIR_READ_OUTPUT_POWER)
         status = [
             ('Current uptime', self._get_timedelta(_CORSAIR_READ_UPTIME), ''),
             ('Total uptime', self._get_timedelta(_CORSAIR_READ_TOTAL_UPTIME), ''),
@@ -115,7 +117,10 @@ class CorsairHidPsu(UsbHidDriver):
             ('Fan control mode', self._get_fan_control_mode(), ''),
             ('Fan speed', self._get_float(CMD.READ_FAN_SPEED_1), 'rpm'),
             ('Input voltage', self._get_float(CMD.READ_VIN), 'V'),
-            ('Total power', self._get_float(_CORSAIR_READ_INPUT_POWER), 'W'),
+            ('Input current', self._get_float(CMD.READ_IIN), 'A'),
+            ('Input power', power_in, 'W'),
+            ('Total power (output)', power_out, 'W'),
+            ('Estimated efficiency', power_out / power_in * 100, '%'),
             ('+12V OCP mode', self._get_12v_ocp_mode(), ''),
         ]
         for rail in [_RAIL_12V, _RAIL_5V, _RAIL_3P3V]:
